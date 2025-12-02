@@ -30,7 +30,7 @@ class Application(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("公欠届作成ツール")
-        self.geometry("1100x950")
+        self.geometry("1100x750")
 
         # データの読み込み
         self.subjects = self.load_json(SUBJECT_JSON)
