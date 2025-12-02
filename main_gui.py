@@ -9,17 +9,20 @@ from datetime import datetime
 from module.imageFormDrawer.imageFormDrawer import FormDrawer
 
 # --- 設定 ---
-IMAGE_PATH = "./module/imageFormDrawer/image/A4.jpg"
 OUTPUT_PATH = "作成済.jpg"
 FONT_PATH = "./module/imageFormDrawer/fonts/ipaexg.ttf"
 
 # 設定ファイルのパス
+DATA_DIR = "data"
+IMAGE_DIR = os.path.join(DATA_DIR, "image")
+IMAGE_PATH_OUT = os.path.join(IMAGE_DIR, "A4_out.jpg")
+IMAGE_PATH_IN = os.path.join(IMAGE_DIR, "A4_in.jpg")
 IMAGE_POSITIONS_OUT = "./module/imageFormDrawer/json/image_positions-out.json"
 CIRC_POSITIONS_OUT = "./module/imageFormDrawer/json/circles_positions-out.json"
 IMAGE_POSITIONS_IN = "./module/imageFormDrawer/json/image_positions-in.json"
 CIRC_POSITIONS_IN = "./module/imageFormDrawer/json/circles_positions-in.json"
-SUBJECT_JSON = "./data/subject.json"
-STUDENT_JSON = "./data/student_data.json"
+SUBJECT_JSON = os.path.join(DATA_DIR, "subject.json")
+STUDENT_JSON = os.path.join(DATA_DIR, "student_data.json")
 PROFILE_DIR = "profile"
 
 
@@ -36,9 +39,10 @@ class Application(tk.Tk):
         # 左右のフォームのデータを保持する辞書
         self.form_vars = {"left": {}, "right": {}}
 
-        # プロファイルディレクトリの確認・作成
-        if not os.path.exists(PROFILE_DIR):
-            os.makedirs(PROFILE_DIR)
+        # ディレクトリの確認・作成
+        for dir_path in [PROFILE_DIR, DATA_DIR, IMAGE_DIR]:
+            if not os.path.exists(dir_path):
+                os.makedirs(dir_path)
 
         # UIの構築
         self.create_widgets()
@@ -174,21 +178,24 @@ class Application(tk.Tk):
         subject_names = [d["name"] for d in self.subjects]
 
         for i in range(6):
-            row = i * 2
-            ttk.Label(frame_subject, text=f"科目{i+1}:").grid(row=row, column=0, sticky="e", padx=5)
+            row = i
+            # 科目
+            ttk.Label(frame_subject, text=f"科目{i+1}:").grid(row=row, column=0, sticky="e", padx=5, pady=2)
             var_sub = tk.StringVar()
             cb_sub = ttk.Combobox(frame_subject, textvariable=var_sub, state="readonly", values=subject_names)
-            cb_sub.grid(row=row, column=1, columnspan=3, sticky="ew", padx=5, pady=2)
+            cb_sub.grid(row=row, column=1, sticky="ew", padx=5, pady=2)
 
-            ttk.Label(frame_subject, text="担当教員:").grid(row=row+1, column=0, sticky="e", padx=5)
+            # 担当教員
+            ttk.Label(frame_subject, text="担当教員:").grid(row=row, column=2, sticky="e", padx=5, pady=2)
             var_teacher = tk.StringVar()
             cb_teacher = ttk.Combobox(frame_subject, textvariable=var_teacher, state="readonly")
-            cb_teacher.grid(row=row+1, column=1, columnspan=3, sticky="ew", padx=5, pady=2)
+            cb_teacher.grid(row=row, column=3, sticky="ew", padx=5, pady=2)
 
             cb_sub.bind("<<ComboboxSelected>>", lambda event, s=side, idx=i: self.on_subject_select(event, s, idx))
             self.form_vars[side]["subjects"].append({"subject": var_sub, "teacher_var": var_teacher, "teacher_cb": cb_teacher})
 
-        frame_subject.columnconfigure(1, weight=1)
+        frame_subject.columnconfigure(1, weight=1) # 科目コンボボックスの伸縮
+        frame_subject.columnconfigure(3, weight=1) # 教員コンボボックスの伸縮
 
         # --- 4. その他の情報 ---
         frame_detail = ttk.LabelFrame(parent, text="詳細")
@@ -436,9 +443,11 @@ class Application(tk.Tk):
             if application_type == "out":
                 image_pos_path = IMAGE_POSITIONS_OUT
                 circ_pos_path = CIRC_POSITIONS_OUT
+                image_path = IMAGE_PATH_OUT
             else: # "in"
                 image_pos_path = IMAGE_POSITIONS_IN
                 circ_pos_path = CIRC_POSITIONS_IN
+                image_path = IMAGE_PATH_IN
 
             with open(image_pos_path, "r", encoding="utf-8") as f:
                 image_pos = json.load(f)
@@ -448,7 +457,7 @@ class Application(tk.Tk):
             form_data_left = self.get_form_data("left")
             form_data_right = self.get_form_data("right")
 
-            img = Image.open(IMAGE_PATH)
+            img = Image.open(image_path)
             drawer = FormDrawer(FONT_PATH)
 
             drawer.draw(img, form_data_left, image_pos["left"], circ_pos["left"])
