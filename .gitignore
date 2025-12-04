@@ -1,1 +1,7 @@
 作成済.jpg
+build/*
+dist/*
+__pycache__/
+*.spec
+profile/*
+data/image/学*.jpg

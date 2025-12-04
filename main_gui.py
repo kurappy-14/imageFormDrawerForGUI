@@ -3,27 +3,60 @@ from tkinter import ttk, messagebox
 import json
 from PIL import Image
 import os
+import sys
 from datetime import datetime
 
 # 前回作成したモジュールをインポート
 from module.imageFormDrawer.imageFormDrawer import FormDrawer
 
+# --- PyInstallerで実行された場合にリソースへのパスを解決する ---
+def resource_path(relative_path):
+    """ PyInstallerで作成された実行ファイル内のリソースへのパスを取得する """
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
 # --- 設定 ---
 OUTPUT_PATH = "作成済.jpg"
-FONT_PATH = "./module/imageFormDrawer/fonts/ipaexg.ttf"
+FONT_PATH = resource_path("module/imageFormDrawer/fonts/ipaexg.ttf")
 
 # 設定ファイルのパス
 DATA_DIR = "data"
 IMAGE_DIR = os.path.join(DATA_DIR, "image")
 IMAGE_PATH_OUT = os.path.join(IMAGE_DIR, "A4_out.jpg")
 IMAGE_PATH_IN = os.path.join(IMAGE_DIR, "A4_in.jpg")
-IMAGE_POSITIONS_OUT = "./module/imageFormDrawer/json/image_positions-out.json"
-CIRC_POSITIONS_OUT = "./module/imageFormDrawer/json/circles_positions-out.json"
-IMAGE_POSITIONS_IN = "./module/imageFormDrawer/json/image_positions-in.json"
-CIRC_POSITIONS_IN = "./module/imageFormDrawer/json/circles_positions-in.json"
+
+# 実行ファイルにバンドルする内部リソース
+IMAGE_POSITIONS_OUT = resource_path("module/imageFormDrawer/json/image_positions-out.json")
+CIRC_POSITIONS_OUT = resource_path("module/imageFormDrawer/json/circles_positions-out.json")
+IMAGE_POSITIONS_IN = resource_path("module/imageFormDrawer/json/image_positions-in.json")
+CIRC_POSITIONS_IN = resource_path("module/imageFormDrawer/json/circles_positions-in.json")
+
+# 実行時に外部ファイルとして生成するリソース
 SUBJECT_JSON = os.path.join(DATA_DIR, "subject.json")
 STUDENT_JSON = os.path.join(DATA_DIR, "student_data.json")
 PROFILE_DIR = "profile"
+
+# 埋め込むデフォルトの画像データパス
+DEFAULT_IMAGE_OUT_PATH = resource_path("data/image/A4_out.jpg")
+DEFAULT_IMAGE_IN_PATH = resource_path("data/image/A4_in.jpg")
+
+# デフォルトのJSONデータ
+DEFAULT_SUBJECT_DATA = [
+    {"name": "", "teacher": ""},
+    {"name": "半導体", "teacher": "田中"},
+    {"name": "クラスワーク", "teacher": ["山田", "佐藤"]},
+    {"name": "ゲームプログラミング", "teacher": "東雲"}
+]
+DEFAULT_STUDENT_DATA = [
+    {
+        "クラス": "3C8",
+        "出席番号": "20",
+        "学科": "情報システム学科",
+        "学籍番号": "7654321",
+        "氏名": "鈴木 花子"
+    }
+]
 
 
 class Application(tk.Tk):
@@ -32,17 +65,15 @@ class Application(tk.Tk):
         self.title("公欠届作成ツール")
         self.geometry("1100x750")
 
+        # 必要なファイルとディレクトリを準備
+        self.prepare_files()
+
         # データの読み込み
         self.subjects = self.load_json(SUBJECT_JSON)
         self.students = self.load_json(STUDENT_JSON)
 
         # 左右のフォームのデータを保持する辞書
         self.form_vars = {"left": {}, "right": {}}
-
-        # ディレクトリの確認・作成
-        for dir_path in [PROFILE_DIR, DATA_DIR, IMAGE_DIR]:
-            if not os.path.exists(dir_path):
-                os.makedirs(dir_path)
 
         # UIの構築
         self.create_widgets()
@@ -58,12 +89,38 @@ class Application(tk.Tk):
         # 学内申請書ボタン
         btn_in = ttk.Button(button_frame, text="学内申請書を作成", command=lambda: self.generate("in"))
         btn_in.pack(side="left", expand=True, fill="x", padx=5)
+
+    def prepare_files(self):
+        """アプリケーションに必要なディレクトリとデータファイルを作成する"""
+        # ディレクトリの作成
+        for dir_path in [PROFILE_DIR, DATA_DIR, IMAGE_DIR]:
+            os.makedirs(dir_path, exist_ok=True)
+
+        # subject.json がなければ作成
+        if not os.path.exists(SUBJECT_JSON):
+            with open(SUBJECT_JSON, "w", encoding="utf-8") as f:
+                json.dump(DEFAULT_SUBJECT_DATA, f, ensure_ascii=False, indent=4)
+
+        # student_data.json がなければ作成
+        if not os.path.exists(STUDENT_JSON):
+            with open(STUDENT_JSON, "w", encoding="utf-8") as f:
+                json.dump(DEFAULT_STUDENT_DATA, f, ensure_ascii=False, indent=4)
+
+        # 画像ファイルがなければコピー
+        if not os.path.exists(IMAGE_PATH_OUT):
+            import shutil
+            shutil.copy(DEFAULT_IMAGE_OUT_PATH, IMAGE_PATH_OUT)
+        if not os.path.exists(IMAGE_PATH_IN):
+            import shutil
+            shutil.copy(DEFAULT_IMAGE_IN_PATH, IMAGE_PATH_IN)
+
     def load_json(self, path):
         try:
             with open(path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except FileNotFoundError:
-            messagebox.showwarning("警告", f"{path} が見つかりません。")
+            messagebox.showwarning("警告", f"設定ファイルが見つかりません: {path}\n"
+                                        "アプリケーションを再起動してファイルを生成してください。")
             return []
 
     def create_widgets(self):
