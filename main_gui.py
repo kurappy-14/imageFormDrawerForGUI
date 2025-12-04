@@ -169,6 +169,66 @@ class Application(tk.Tk):
         ttk.Label(frame_date, text="日:").grid(row=0, column=4)
         self.form_vars[side]["day"] = tk.StringVar(value=str(today.day))
         ttk.Entry(frame_date, textvariable=self.form_vars[side]["day"], width=5).grid(row=0, column=5)
+        # 自動入力ボタン 
+        def auto_fill_subjects(side):
+            """訪問日の時間割から時限対応で科目・講師を自動設定"""
+            vars = self.form_vars[side]
+
+            # 日付取得
+            try:
+                year = int(vars["year"].get())
+                month = int(vars["month"].get())
+                day = int(vars["day"].get())
+
+                # MM/DD 形式生成
+                target = f"{month:02d}/{day:02d}"
+            except ValueError:
+                messagebox.showerror("エラー", "日付が数字として正しくありません。")
+                return
+
+            # 【時限→科目】のマッピング辞書（最大 1〜6 限）
+            timetable = {i: None for i in range(1, 7)}
+
+            # 授業検索
+            for sub in self.subjects:
+                if "schedule" not in sub:
+                    continue
+
+                for sch in sub["schedule"]:
+                    if sch["date"] != target:
+                        continue
+
+                    # sch["period"] は [1,2,3] など
+                    for p in sch["period"]:
+                        if 1 <= p <= 6:
+                            timetable[p] = {
+                                "name": sub["name"],
+                                "teacher": sch["teacher"]
+                            }
+
+            # 入力欄クリア（必要なら）
+            for slot in self.form_vars[side]["subjects"]:
+                slot["subject"].set("")
+                slot["teacher_var"].set("")
+                slot["teacher_cb"].config(values=[], state="readonly")
+
+            # timetable を UI に反映
+            for period in range(1, 7):
+                match = timetable.get(period)
+                if match:
+                    fields = self.form_vars[side]["subjects"][period - 1]
+                    fields["subject"].set(match["name"])
+                    fields["teacher_var"].set(match["teacher"])
+
+            # 一件もなかったら警告
+            if not any(timetable.values()):
+                messagebox.showwarning("注意", f"{target} の授業が見つかりませんでした。")
+                return
+
+            messagebox.showinfo("完了", f"{target} の授業を自動入力しました。")
+        ttk.Button(frame_date, text="日付から科目を自動入力",
+                command=lambda s=side: auto_fill_subjects(s)
+        ).grid(row=0, column=6, padx=10)
 
         # --- 3. 科目情報フレーム ---
         frame_subject = ttk.LabelFrame(parent, text="公欠科目")
@@ -248,6 +308,8 @@ class Application(tk.Tk):
         ttk.Label(frame_detail, text="分").grid(row=6, column=4, sticky="w")
 
         frame_detail.columnconfigure(1, weight=1)
+
+
 
     def update_profile_list(self, side=None):
         """プロファイルリストを更新する"""

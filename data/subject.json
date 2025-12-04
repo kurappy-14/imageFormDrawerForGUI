@@ -1,7 +1,62 @@
 [
-    {"name": "", "teacher": ""},
-    {"name": "AIマネジメント", "teacher": "山田"},
-    {"name": "半導体", "teacher": "田中"},
-    {"name": "クラスワーク", "teacher": ["山田", "佐藤"]},
-    {"name": "ゲームプログラミング", "teacher": "東雲"}
+    {
+        "name": "",
+        "teacher": ""
+    },
+    {
+        "name": "AIマネジメント",
+        "teacher": "山田",
+        "schedule": [
+            {
+                "date": "12/04",
+                "period": [
+                    4,
+                    5
+                ],
+                "teacher": "山田"
+            }
+        ]
+    },
+    {
+        "name": "半導体",
+        "teacher": "田中"
+    },
+    {
+        "name": "クラスワーク",
+        "teacher": [
+            "山田",
+            "佐藤"
+        ],
+        "schedule": [
+            {
+                "date": "12/04",
+                "period": [
+                    6
+                ],
+                "teacher": "山田"
+            },
+            {
+                "date": "12/05",
+                "period": [
+                    6
+                ],
+                "teacher": "佐藤"
+            }
+        ]
+    },
+    {
+        "name": "ゲームプログラミング",
+        "teacher": "東雲",
+        "schedule": [
+            {
+                "date": "12/04",
+                "period": [
+                    1,
+                    2,
+                    3
+                ],
+                "teacher": "東雲"
+            }
+        ]
+    }
 ]
